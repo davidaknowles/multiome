@@ -17,7 +17,7 @@ Consult current versions before changing recommendations.
 ## Sequence-to-function modeling
 
 - [ChromBPNet](https://pmc.ncbi.nlm.nih.gov/articles/PMC11741299/): bias-factorized base-resolution accessibility prediction and regulatory syntax.
-- [ChromBPNet implementation](https://github.com/kundajelab/chrombpnet): input formats, chromosome split files, preprocessing, training, and reports.
+- [ChromBPNet implementation](https://github.com/kundajelab/chrombpnet): input formats, preprocessing, bias modeling, and reports.
 - [ChromBPNet bias-model guidance](https://github-wiki-see.page/m/kundajelab/chrombpnet/wiki/Bias-model-training): verify enzyme bias, avoid learning TF motifs, and match GC between background and peaks.
 - [scBasset](https://www.nature.com/articles/s41592-022-01562-8): sequence-based modeling of single-cell ATAC accessibility.
 - [Borzoi](https://www.nature.com/articles/s41588-024-02053-6): sequence-to-RNA coverage modeling relevant to a distinct RNA head in multiome models.

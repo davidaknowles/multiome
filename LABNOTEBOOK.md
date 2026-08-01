@@ -127,8 +127,8 @@ Added the repository-owned `process-scatac-multiome` skill. Its core workflow
 covers provenance, raw-read and fragment processing, layered library/cell QC,
 multiplet detection, multiome pairing, peak construction, annotation, pseudobulk
 targets, model-data exports, and hard failure conditions. Detailed guidance is
-split into QC/processing, training-data, and primary-source references so the core
-skill stays concise.
+organized into QC/processing, target-preparation, and primary-source references so
+the core skill stays concise.
 
 ### Model-facing decisions
 
@@ -137,15 +137,15 @@ points rather than universal gates. It preserves raw counts, biological
 replicates, and modality-specific failure states. For sequence-to-function work it
 prefers insertion profiles or replicate-aware counts over peak labels alone,
 requires explicit Tn5-bias evaluation, and separates ATAC and RNA measurement
-heads. Split guidance combines disjoint genomic groups with held-out biological
-units and keeps overlapping windows, alleles, orthologs, captures, and donors in
-one group. Peak definition, background sampling, normalization, and label
-construction must be fit without test data.
+heads. The revised workflow specifies a Python-first stack: SnapATAC2, Scanpy,
+MuData, scvi-tools, MACS3, bioframe/PyRanges, pysam, pyBigWig, scipy/AnnData,
+Parquet/Zarr, and plotnine. Cell Ranger remains the preferred chemistry-aware
+entry point for 10x FASTQs.
 
 ### Validation
 
 Validated the skill frontmatter, name, directory layout, and interface metadata
-with the skill-creator validator. The skill is 173 lines and directly routes to
-three focused reference documents. Sources prioritize current ENCODE, 10x,
+with the skill-creator validator. After simplification, the skill is 116 lines and
+directly routes to three focused reference documents. Sources prioritize current ENCODE, 10x,
 SnapATAC2, Signac, and MACS3 documentation plus the ArchR, AMULET, COMPOSITE,
 ChromBPNet, scBasset, and Borzoi primary publications.

@@ -1,130 +1,59 @@
-# QC and processing reference
+# QC and processing
 
-## Contents
+## Interpret QC jointly
 
-1. Principles
-2. Library-level QC
-3. Cell-level ATAC QC
-4. Multiome RNA and pairing QC
-5. Multiplets and contamination
-6. Peak and matrix construction
-7. Required reports
+Compute metrics per capture with one pinned annotation. TSS enrichment definitions
+differ across tools, so do not compare values without checking implementation.
+Use thresholds to identify technical failure, not to improve cluster separation.
 
-## 1. Principles
+### Library metrics
 
-Use thresholds to distinguish technical failure, not to maximize apparent cluster
-separation. Compute metrics per capture with a single pinned annotation. TSS
-enrichment implementations differ, so do not compare numerical values across
-pipelines without checking definitions. Avoid hard removal based on one metric;
-inspect joint distributions and retain pass/fail reasons.
+- Q30, barcode validity, saturation, and read depth;
+- proper MAPQ-filtered pairs, unmapped/chimeric/non-primary fractions;
+- duplicates, unique nuclear fragments, and complexity;
+- TSS profile, fragment-size periodicity, FRiP, and blacklist signal;
+- barcode-rank curve, called cells, and fragments assigned to cells;
+- depth-normalized agreement between biological replicates.
 
-Thresholds below are starting points for visualization or mixture fitting, not
-universal acceptance criteria. Small cells, frozen tissue, tumor, developmental,
-and non-model-organism samples can have shifted distributions.
+Use Cell Ranger ARC reports for 10x libraries and import `summary.csv` into pandas.
+Use MultiQC to collect sequencing/alignment reports. ENCODE bulk FRiP guidance
+(>0.3 good; >0.2 acceptable) is a library diagnostic, not a single-cell gate.
 
-## 2. Library-level QC
+### Cell metrics
 
-Report for each FASTQ/library:
+Use SnapATAC2 to calculate unique fragments and TSS enrichment. Add FRiP,
+blacklist, mitochondrial/non-primary fraction, nucleosome signal, and doublet
+score to `adata.obs`. Plot joint distributions by library with plotnine.
 
-| Area | Metrics and checks |
-|---|---|
-| Sequencing | read pairs, Q30 by read/index, barcode validity, saturation |
-| Mapping | MAPQ-filtered proper pairs, unmapped, chimeric, mitochondrial/non-nuclear |
-| Complexity | duplicate fraction, unique nuclear fragments, complexity curve |
-| ATAC signal | TSS enrichment/profile, FRiP, blacklist fraction, fragment periodicity |
-| Cell recovery | barcode-rank curve, called cells, fragments in called cells |
-| Replication | depth-normalized peak/profile correlation between biological replicates |
+SnapATAC2 defaults of at least 1,000 fragments and TSS enrichment 5 are useful
+starting anchors. Depending on tissue and chemistry, inspect ranges such as
+1,000–5,000 fragments, TSS enrichment 4–10, and FRiP 0.15–0.30. Derive actual
+boundaries from each library and check upper depth tails for doublets. Do not move
+numeric cutoffs between TSS implementations.
 
-ENCODE bulk ATAC guidance treats FRiP above 0.3 as good and above 0.2 as
-acceptable, but bulk values are not cell-level gates. For 10x assays, compare
-library metrics with chemistry-specific vendor expectations and inspect alerts.
+### Multiome checks
 
-Reject or quarantine a library when multiple independent signals indicate failure:
-poor mapping/barcodes, absent TSS enrichment, no nucleosomal periodicity, low
-complexity, dominant background, or poor concordance unsupported by biology.
+Store ATAC and RNA in MuData without independently filtering and silently
+intersecting barcodes. Use Scanpy for RNA counts, genes, mitochondrial/ribosomal
+fractions, and Scrublet scores. Review joint-good, ATAC-low, RNA-low, and joint-low
+states before removal; genuine cell types can be weak in one modality. Treat ATAC
+gene activity as annotation support, not measured expression or regulatory proof.
 
-## 3. Cell-level ATAC QC
+### Peaks and matrices
 
-Compute at minimum:
+Use genome tiles for initial structure, then pseudobulk fragments by sample and
+broad cell state. Require enough cells/fragments, call peaks with MACS3 paired
+fragment mode, and preserve summit and pseudobulk provenance. Create a fixed-width
+or otherwise documented non-overlapping consensus with bioframe/PyRanges. Exclude
+blacklists and poor mappability, then quantify all cells in the frozen regions.
 
-- unique nuclear fragments;
-- TSS enrichment using the selected pipeline's definition;
-- fraction of fragments or insertion events in consensus peaks;
-- blacklist fraction and mitochondrial/non-primary fraction;
-- nucleosome signal or nucleosome-free/mono-nucleosomal balance;
-- duplicate burden when recoverable;
-- doublet score and capture/library identity.
+Keep raw scipy sparse counts. Write derivatives to separate AnnData layers and
+large tables/tracks to Parquet, Zarr, or BigWig. Check replicate concordance before
+pooling.
 
-Useful initial views are log10 fragments versus TSS enrichment, fragments versus
-FRiP, and each metric stratified by library. SnapATAC2 defaults of 1,000 fragments
-and TSS enrichment 5 are reasonable plot anchors, not universal gates. A common
-high-complexity analysis may start exploring 1,000–5,000 fragments, TSS enrichment
-4–10, and FRiP 0.15–0.30, then select sample-aware boundaries from the observed
-good-cell mode. Do not transplant these ranges across TSS implementations.
+## Report
 
-Check both lower and upper tails: unusually high fragments/features often indicate
-multiplets. Low mitochondrial fraction is generally desirable, but a universal
-percentage cutoff is inappropriate across tissues and nuclei preparations.
-
-When peak definitions are unavailable, use TSS and tile/regulatory-region signal
-for initial QC. Recompute FRiP after a consensus peak set exists, but do not let
-test samples define training peaks in a predictive benchmark.
-
-## 4. Multiome RNA and pairing QC
-
-Retain the one-to-one ATAC/RNA barcode mapping. Report RNA UMIs, detected genes,
-mitochondrial and ribosomal fractions, ambient-RNA evidence, and ATAC/RNA depth
-alongside ATAC metrics.
-
-Classify cells into joint-good, ATAC-low, RNA-low, and joint-low states. Review
-modality-low states by cell type and sample before removal; genuine biology can
-produce low transcription or accessibility. Inspect correlations between ATAC
-gene activity and RNA expression only as QC/annotation support, not as a direct
-regulatory ground truth.
-
-Do not independently filter ATAC and RNA matrices and silently intersect them.
-Start from the joint cell calls, apply documented modality-aware rules, and retain
-the disposition of every original barcode.
-
-## 5. Multiplets and contamination
-
-Run multiplet detection within each capture. Use ATAC-aware simulated-neighbor
-methods and/or read-count methods such as AMULET. For multiome, combine ATAC and
-RNA doublet evidence; add genotype, hashing, or species-mixing evidence when
-available. Calibrate expected rates from loading rather than applying one rate to
-all captures.
-
-Flag clusters with incompatible lineage markers, excessive depth, discordant
-modalities, or donor mixing even if an algorithmic score is below threshold.
-Estimate ambient RNA and avoid using ambient marker expression to label ATAC cell
-states.
-
-## 6. Peak and matrix construction
-
-1. Cluster initially with genome tiles or another peak-independent representation.
-2. Create pseudobulks per sample and broad cell state. Require minimum cells and
-   fragments; merge rare states only when biologically defensible.
-3. Call peaks per pseudobulk with paired-fragment-aware settings. Preserve summit,
-   score, sample, and cell-state provenance.
-4. Construct a fixed-width, non-overlapping consensus. Exclude blacklists and poor
-   mappability. Quantify all cells and replicates in the frozen set.
-5. Keep raw integer counts. Store any TF-IDF, CPM/RPM, log, quantile, or batch-
-   corrected representation as a derivative with parameters.
-6. Measure replicate concordance and state specificity before pooling.
-
-For sequence modeling, do not use a union called from train and test samples.
-Either define loci from external annotations without test labels or construct the
-training candidate set inside each split. Evaluation may use a separately frozen,
-predeclared locus set.
-
-## 7. Required reports
-
-Produce per-library and aggregate reports containing:
-
-- metric distributions before and after each gate;
-- pass/fail counts by donor, tissue, condition, cell state, and capture;
-- threshold rationale and sensitivity analysis near each boundary;
-- doublet calls and cross-modality discordance;
-- replicate concordance and depth/quality confounding of embeddings;
-- files, checksums, software versions, annotations, and commands;
-- exclusions and any sample or class made underpowered by QC.
+Provide metric distributions before/after filtering, retention by donor/capture,
+threshold rationale, doublet and modality-discordance calls, replicate agreement,
+depth/quality effects on embeddings, file checksums, commands, environments, and
+all exclusions.

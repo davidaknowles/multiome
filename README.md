@@ -6,7 +6,7 @@ machine-readable table is
 [`data/public_10x_multiome_datasets.csv`](data/public_10x_multiome_datasets.csv).
 The repository also includes a reusable
 [`process-scatac-multiome` skill](skills/process-scatac-multiome/SKILL.md) for QC,
-processing, and leakage-resistant sequence-to-function training-data design.
+processing, and sequence-to-function target preparation.
 The filename is retained for compatibility with the original 10x-only catalog. It
 contains **144 provider records** retrieved on 2026-08-01:
 
