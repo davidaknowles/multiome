@@ -1,0 +1,3 @@
+example,raw_fastq_bytes,recovered_cells,raw_bytes_per_cell,source_url
+10x_10k_PBMC_Multiome_Chromium_X,107754854400,10974,9818889.01,https://www.10xgenomics.com/datasets/10-k-human-pbm-cs-multiome-v-1-0-chromium-x-1-standard-2-0-0
+
