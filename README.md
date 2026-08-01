@@ -47,12 +47,15 @@ level raw-data link may point to GEO, HCA, EGA, Synapse, ArrayExpress, or anothe
 repository and may require registration or controlled-access approval. Blank raw
 URL fields mean CELLxGENE did not publish a link, not that raw reads cannot exist.
 
-As retrieved, all 14 CATLAS detail pages label their download products “Coming
-Soon” and expose no direct raw or processed asset URLs or byte sizes. Their portal
-and publication DOI are recorded, format flags are false, storage fields are zero,
-and the basis/access columns explicitly mark these values as unknown and excluded.
-The CATLAS `cell_count` values are retained verbatim because several are bounds,
-approximations, or combined ATAC/RNA counts.
+Although all 14 CATLAS detail pages label their own download products “Coming
+Soon,” the original publications point to usable copies in ENA, NEMO Archive,
+EGA, dbGaP, GEO, Synapse/PsychENCODE, Dropbox, and author portals. Those links are
+now joined into the main catalog. The file-level
+[`data/catlas_download_manifest.csv`](data/catlas_download_manifest.csv) contains
+1,116 entries, including 1,010 direct ENA FASTQs and 83 direct processed assets.
+It distinguishes direct files, repository landing pages, and controlled-access
+collections. The CATLAS `cell_count` values remain verbatim because several are
+bounds, approximations, or combined ATAC/RNA counts.
 
 ## Storage estimates
 
@@ -73,8 +76,8 @@ Current aggregate storage represented by the table is:
 |---|---:|---:|---|
 | CELLxGENE | 88.119 TB | 0.692 TB | modeled raw; exact hosted assets |
 | 10x Genomics | 1.226 TB | 1.218 TB | exact listed assets |
-| CATLAS | not available | not available | no downloadable assets/sizes currently listed |
-| **Known total** | **89.345 TB** | **1.909 TB** | decimal TB; excludes CATLAS unknowns |
+| CATLAS | 22.321 TB | 1.024 TB | exact known publication-linked assets; lower bound |
+| **Known total** | **111.666 TB** | **2.933 TB** | decimal TB; excludes unknown-size controlled/additional assets |
 
 ## Rebuild
 
@@ -82,6 +85,13 @@ The builder uses only the Python standard library:
 
 ```bash
 PYTHONPATH=src python scripts/build_catalog.py
+```
+
+Refresh the publication-linked CATLAS file manifest first when repository assets
+may have changed:
+
+```bash
+PYTHONPATH=src python scripts/build_catlas_download_manifest.py
 ```
 
 Use `--cellxgene-only` to rebuild only the 107 CELLxGENE rows, or
@@ -109,10 +119,10 @@ H5AD observation metadata with HTTP range requests.
 | `multiome_primary_cell_count` | Non-derived Multiome cells used for raw-storage modeling |
 | `raw_data_urls` | Raw repository landing pages or direct input assets |
 | `raw_data_status` | Whether a raw repository/input link was found |
-| `processed_data_urls` | Direct downloadable provider assets |
+| `processed_data_urls` | Direct assets and, where files are enumerated on demand, download pages |
 | `other_data_urls` | Auxiliary data portals (for example Figshare, Zenodo, or Single Cell Portal) |
 | `available_file_types` | All types directly advertised for the row |
 | `has_*` | Requested format flags; H5AD counts as AnnData |
-| `*_storage_bytes` | Integer byte totals suitable for known-size aggregation; CATLAS unknowns use zero with an explicit basis |
+| `*_storage_bytes` | Integer byte totals suitable for known-size aggregation; unknown and overlapping assets are excluded with an explicit basis |
 | `*_storage_basis` | Exact versus modeled provenance |
 | `access` | Public metadata/assets; linked repositories can impose access controls |

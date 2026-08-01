@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import re
 import time
+import urllib.parse
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from html.parser import HTMLParser
@@ -50,6 +51,59 @@ def fetch_bytes(url: str, timeout: int = 120, attempts: int = 3) -> bytes:
 
 def fetch_json(url: str) -> Any:
     return json.loads(fetch_bytes(url))
+
+
+def fetch_tsv(url: str) -> list[dict[str, str]]:
+    """Fetch a small tab-separated repository report."""
+    import csv
+    import io
+
+    return list(csv.DictReader(io.StringIO(fetch_bytes(url).decode("utf-8")), delimiter="\t"))
+
+
+def remote_size(url: str, timeout: int = 120) -> int:
+    """Return an HTTP asset's byte size without downloading its contents."""
+    request = urllib.request.Request(
+        url, method="HEAD", headers={"User-Agent": "multiome-catalog/0.1"}
+    )
+    with urllib.request.urlopen(request, timeout=timeout) as response:
+        length = response.headers.get("Content-Length")
+    if length is None:
+        raise RuntimeError(f"No Content-Length returned for {url}")
+    return int(length)
+
+
+def ena_fastq_files(
+    accession: str,
+    species: str = "",
+    strategies: set[str] | None = None,
+) -> list[dict[str, object]]:
+    """Enumerate public FASTQs for an ENA study/project accession."""
+    fields = "run_accession,scientific_name,library_strategy,fastq_ftp,fastq_bytes"
+    query = urllib.parse.urlencode(
+        {"accession": accession, "result": "read_run", "fields": fields, "format": "tsv"}
+    )
+    records = fetch_tsv(f"https://www.ebi.ac.uk/ena/portal/api/filereport?{query}")
+    files: list[dict[str, object]] = []
+    for record in records:
+        if species and record["scientific_name"] != species:
+            continue
+        if strategies and record["library_strategy"] not in strategies:
+            continue
+        urls = record["fastq_ftp"].split(";") if record["fastq_ftp"] else []
+        sizes = record["fastq_bytes"].split(";") if record["fastq_bytes"] else []
+        if len(urls) != len(sizes):
+            raise RuntimeError(f"ENA URL/size mismatch for {record['run_accession']}")
+        for url, size in zip(urls, sizes):
+            files.append(
+                {
+                    "run_accession": record["run_accession"],
+                    "url": f"https://{url}",
+                    "size_bytes": int(size),
+                    "library_strategy": record["library_strategy"],
+                }
+            )
+    return files
 
 
 def fetch_json_post(url: str, payload: dict[str, str]) -> Any:
@@ -190,6 +244,14 @@ def classify_file(title: str, url: str) -> str:
         return "BED"
     if "h5ad" in text:
         return "H5AD"
+    if "loom" in text:
+        return "LOOM"
+    if "matrix market" in text or ".mtx" in text:
+        return "MTX"
+    if ".rds" in text:
+        return "RDS"
+    if ".snap" in text:
+        return "SNAP"
     suffix = Path(url.split("?", 1)[0]).suffix.lower().lstrip(".")
     return suffix.upper() if suffix else title
 

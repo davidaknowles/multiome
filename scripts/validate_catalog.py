@@ -78,8 +78,24 @@ def main() -> None:
         "Homo Sapiens", "Mus musculus", "Macaca mulatta", "Callithrix jacchus"
     }
     assert all(row["portal_url"] and row["doi"] for row in catlas)
-    assert all(not row["processed_data_urls"] for row in catlas)
-    assert all(row["access"] == "public metadata only; CATLAS downloads marked Coming Soon" for row in catlas)
+    assert all(row["raw_data_urls"] and row["processed_data_urls"] for row in catlas)
+    assert all(int(row["processed_storage_bytes"]) > 0 for row in catlas)
+    assert sum(int(row["raw_storage_bytes"]) > 0 for row in catlas) == 12
+    assert sum(row["has_adata"] == "true" for row in catlas) >= 1
+    assert sum(row["has_bigwig"] == "true" for row in catlas) >= 5
+    assert sum(row["has_fragments"] == "true" for row in catlas) >= 2
+    assert sum(row["has_bed"] == "true" for row in catlas) >= 6
+
+    manifest_path = args.catalog.parent / "catlas_download_manifest.csv"
+    with manifest_path.open(newline="", encoding="utf-8") as handle:
+        manifest = list(csv.DictReader(handle))
+    assert len(manifest) >= 1_100
+    assert len({(row["source_record_id"], row["role"], row["url"]) for row in manifest}) == len(manifest)
+    assert all(row["url"] for row in manifest)
+    assert not [
+        row for row in manifest
+        if row["count_in_storage"] == "true" and int(row["size_bytes"]) <= 0
+    ]
 
     print(f"validated {len(rows)} rows: {dict(sources)}")
     print(
@@ -97,9 +113,14 @@ def main() -> None:
                 for row in rows
                 for column in ("portal_url", "raw_data_urls", "processed_data_urls", "other_data_urls")
                 for url in split_urls(row[column])
+                # GEO's FTP HTTP gateway rate-limits concurrent range requests.
+                # CATLAS GEO files are size-checked while building the manifest.
+                if not url.startswith("https://ftp.ncbi.nlm.nih.gov/geo/")
             }
         )
-        with ThreadPoolExecutor(max_workers=24) as pool:
+        # Keep concurrency modest because the NCBI FTP gateway returns transient
+        # 503 responses when many GEO range requests arrive together.
+        with ThreadPoolExecutor(max_workers=8) as pool:
             results = list(pool.map(check_url, urls))
         failures = [result for result in results if not result[1]]
         print(f"checked {len(urls)} unique URLs; {len(failures)} failed")

@@ -9,6 +9,9 @@ class FileClassificationTest(unittest.TestCase):
         self.assertEqual(classify_file("ATAC smoothed track", "https://example/a.bigwig"), "bigwig")
         self.assertEqual(classify_file("ATAC Per fragment information", "https://example/a.tsv.gz"), "fragment")
         self.assertEqual(classify_file("Sequencing data (FASTQ)", "https://example/fastqs.tar"), "FASTQ")
+        self.assertEqual(classify_file("peak matrix", "https://example/peaks.loom.gz"), "LOOM")
+        self.assertEqual(classify_file("matrix", "https://example/matrix.mtx.gz"), "MTX")
+        self.assertEqual(classify_file("object", "https://example/object.RDS.gz"), "RDS")
 
 
 class DoiExtractionTest(unittest.TestCase):

@@ -1,0 +1,134 @@
+[
+  {
+    "source_record_id": "humanbrain",
+    "raw_urls": ["https://assets.nemoarchive.org/dat-d6r90fb", "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE244618"],
+    "ena_accession": "SRP463760", "ena_species": "Homo sapiens", "ena_strategies": ["ATAC-seq"],
+    "nemo_collection": "dat-d6r90fb",
+    "nemo_size_bytes": 0,
+    "processed": [{"geo": "GSE244618", "file": "GSE244618_RAW.tar", "size_bytes": 402900213760}],
+    "processed_size_bytes": 402900213760,
+    "other_urls": ["https://catlas.org/catlasv1/humanbrain/data/"],
+    "file_types": ["BED", "BEDPE", "SNAP", "bigwig", "TSV"],
+    "access": "public"
+  },
+  {
+    "source_record_id": "humanbraindev",
+    "raw_urls": ["https://ega-archive.org/studies/EGAS00001007472", "https://ega-archive.org/datasets/EGAD00001011300"],
+    "ega_dataset": "EGAD00001011300",
+    "ega_size_bytes": 7523077297528,
+    "processed": [],
+    "processed_size_bytes": 116587620738,
+    "processed_pages": ["https://github.com/linnarsson-lab/fetal_brain_multiomics"],
+    "other_urls": [],
+    "file_types": ["BAM", "LOOM"],
+    "access": "controlled raw; public processed"
+  },
+  {
+    "source_record_id": "humanbrainscope",
+    "raw_urls": ["https://www.synapse.org/#!Synapse:syn51111084.5/datasets/", "https://www.ncbi.nlm.nih.gov/bioproject/PRJNA1089984"],
+    "ena_accession": "PRJNA1089984",
+    "ena_species": "Homo sapiens",
+    "ena_strategies": ["ATAC-seq", "RNA-Seq"],
+    "processed": [
+      {"geo": "GSE261983", "file": "GSE261983_RAW.tar", "size_bytes": 5638574080},
+      {"geo": "GSE261983", "file": "GSE261983_ATAC_peakset.bed.gz"}
+    ],
+    "processed_size_bytes": 5766943929,
+    "processed_pages": ["https://brainscope.gersteinlab.org/atac_fragment_files.html", "https://brainscope.gersteinlab.org/output-signal-peaks.html", "https://brainscope.gersteinlab.org/output-ATAC-merge-peak.html"],
+    "other_urls": ["https://www.synapse.org/#!Synapse:syn53479857/version/1"],
+    "file_types": ["FASTQ", "BED", "fragment", "bigwig"],
+    "access": "mixed: controlled PsychENCODE data; public Girgenti and processed assets"
+  },
+  {
+    "source_record_id": "humanfetal",
+    "raw_urls": ["https://www.ncbi.nlm.nih.gov/projects/gap/cgi-bin/study.cgi?study_id=phs002003.v1.p1"],
+    "processed": [{"geo": "GSE149683", "file": "GSE149683_RAW.tar", "size_bytes": 31177328640}],
+    "processed_size_bytes": 31177328640,
+    "processed_pages": ["https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE149683"],
+    "other_urls": ["https://descartes.brotmanbaty.org/"],
+    "file_types": ["RDS", "BED", "CSV", "TSV"],
+    "access": "controlled raw; public processed"
+  },
+  {
+    "source_record_id": "humanheart",
+    "raw_urls": ["https://www.ncbi.nlm.nih.gov/projects/gap/cgi-bin/study.cgi?study_id=phs002204.v1.p1"],
+    "processed": [{"geo": "GSE165837", "file": "GSE165837_RAW.tar"}, {"geo": "GSE165837", "file": "GSE165837_CARE_ATAC_merged_matrix.mtx.gz"}, {"geo": "GSE165837", "file": "GSE165837_Union_peak_set_RAS.tsv.gz"}],
+    "processed_size_bytes": 1839754721,
+    "processed_pages": ["https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE165837"],
+    "other_urls": [],
+    "file_types": ["MTX", "TSV", "BED"],
+    "access": "controlled raw; public processed"
+  },
+  {
+    "source_record_id": "humanneo",
+    "raw_urls": ["https://www.ncbi.nlm.nih.gov/bioproject/PRJNA953340"],
+    "ena_accession": "PRJNA953340", "ena_species": "Homo sapiens", "ena_strategies": ["ATAC-seq", "RNA-Seq"],
+    "processed": [{"geo": "GSE229169", "file": "GSE229169_human_filtered_barcodes.tsv.gz"}, {"geo": "GSE229169", "file": "GSE229169_human_filtered_features.tsv.gz"}, {"geo": "GSE229169", "file": "GSE229169_human_filtered_matrix.mtx.gz"}, {"geo": "GSE229169", "file": "GSE229169_human_filtered_metadata.tsv.gz"}],
+    "processed_size_bytes": 374815321,
+    "other_urls": ["https://epigenome.wustl.edu/BrainComparativeEpigenome/"], "file_types": ["FASTQ", "MTX", "TSV"], "access": "public"
+  },
+  {
+    "source_record_id": "humantissues",
+    "raw_urls": ["https://www.ncbi.nlm.nih.gov/bioproject/PRJNA764714"],
+    "ena_accession": "SRP338112", "ena_species": "Homo sapiens", "ena_strategies": ["ATAC-seq"],
+    "processed": [{"geo": "GSE184462", "file": "GSE184462_RAW.tar", "size_bytes": 38186752000}, {"geo": "GSE184462", "file": "GSE184462_metadata.tsv.gz"}],
+    "processed_size_bytes": 38222735661,
+    "other_urls": ["https://data.mendeley.com/datasets/yv4fzv6cnm/5"], "file_types": ["FASTQ", "fragment", "BED", "TSV"], "access": "public"
+  },
+  {
+    "source_record_id": "macaqueneo",
+    "raw_urls": ["https://www.ncbi.nlm.nih.gov/bioproject/PRJNA953340"],
+    "ena_accession": "PRJNA953340", "ena_species": "Macaca mulatta", "ena_strategies": ["ATAC-seq", "RNA-Seq"],
+    "processed": [{"geo": "GSE229169", "file": "GSE229169_macaque_filtered_barcodes.tsv.gz"}, {"geo": "GSE229169", "file": "GSE229169_macaque_filtered_features.tsv.gz"}, {"geo": "GSE229169", "file": "GSE229169_macaque_filtered_matrix.mtx.gz"}, {"geo": "GSE229169", "file": "GSE229169_macaque_filtered_metadata.tsv.gz"}],
+    "processed_size_bytes": 270796333,
+    "other_urls": ["https://epigenome.wustl.edu/BrainComparativeEpigenome/"], "file_types": ["FASTQ", "MTX", "TSV"], "access": "public"
+  },
+  {
+    "source_record_id": "marmosetneo",
+    "raw_urls": ["https://www.ncbi.nlm.nih.gov/bioproject/PRJNA953340"],
+    "ena_accession": "PRJNA953340", "ena_species": "Callithrix jacchus", "ena_strategies": ["ATAC-seq", "RNA-Seq"],
+    "processed": [{"geo": "GSE229169", "file": "GSE229169_marmoset_filtered_barcodes.tsv.gz"}, {"geo": "GSE229169", "file": "GSE229169_marmoset_filtered_features.tsv.gz"}, {"geo": "GSE229169", "file": "GSE229169_marmoset_filtered_matrix.mtx.gz"}, {"geo": "GSE229169", "file": "GSE229169_marmoset_filtered_metadata.tsv.gz"}],
+    "processed_size_bytes": 267862739,
+    "other_urls": ["https://epigenome.wustl.edu/BrainComparativeEpigenome/"], "file_types": ["FASTQ", "MTX", "TSV"], "access": "public"
+  },
+  {
+    "source_record_id": "mouseaging",
+    "raw_urls": ["https://www.ncbi.nlm.nih.gov/bioproject/PRJNA778205"],
+    "ena_accession": "SRP344344", "ena_species": "Mus musculus", "ena_strategies": ["ATAC-seq"],
+    "processed": [{"geo": "GSE187332", "file": "GSE187332_BM.bigwigs.tar.gz"}, {"geo": "GSE187332", "file": "GSE187332_DH.bigwigs.tar.gz"}, {"geo": "GSE187332", "file": "GSE187332_FC.bigwigs.tar.gz"}, {"geo": "GSE187332", "file": "GSE187332_HT.bigwigs.tar.gz"}, {"geo": "GSE187332", "file": "GSE187332_LM.bigwigs.tar.gz"}, {"geo": "GSE187332", "file": "GSE187332_DH_final_seurat_object.RDS.gz"}, {"geo": "GSE187332", "file": "GSE187332_FC_final_seurat_object.RDS.gz"}],
+    "processed_size_bytes": 7978031866,
+    "other_urls": [], "file_types": ["FASTQ", "bigwig", "RDS"], "access": "public"
+  },
+  {
+    "source_record_id": "mousebrain",
+    "raw_urls": ["https://assets.nemoarchive.org/dat-wywv153"],
+    "nemo_collection": "dat-wywv153", "nemo_size_bytes": 863000000000,
+    "processed": [{"geo": "GSE173650", "file": "GSE173650_RAW.tar", "size_bytes": 3337379840}],
+    "processed_size_bytes": 3337379840,
+    "other_urls": ["https://catlas.org/catlasv1/mousebrain/data/"], "file_types": ["FASTQ", "SNAP", "TSV", "bigwig"], "access": "public"
+  },
+  {
+    "source_record_id": "mouseneo",
+    "raw_urls": ["https://www.ncbi.nlm.nih.gov/bioproject/PRJNA953340"],
+    "ena_accession": "PRJNA953340", "ena_species": "Mus musculus", "ena_strategies": ["ATAC-seq", "RNA-Seq"],
+    "processed": [{"geo": "GSE229169", "file": "GSE229169_mouse_filtered_barcodes.tsv.gz"}, {"geo": "GSE229169", "file": "GSE229169_mouse_filtered_features.tsv.gz"}, {"geo": "GSE229169", "file": "GSE229169_mouse_filtered_matrix.mtx.gz"}, {"geo": "GSE229169", "file": "GSE229169_mouse_filtered_metadata.tsv.gz"}],
+    "processed_size_bytes": 355801555,
+    "other_urls": ["https://epigenome.wustl.edu/BrainComparativeEpigenome/"], "file_types": ["FASTQ", "MTX", "TSV"], "access": "public"
+  },
+  {
+    "source_record_id": "mousetissues",
+    "raw_urls": ["https://www.ncbi.nlm.nih.gov/bioproject/PRJNA415654"],
+    "ena_accession": "SRP134196", "ena_species": "Mus musculus", "ena_strategies": ["ATAC-seq"],
+    "processed": [{"geo": "GSE111586", "file": "GSE111586_RAW.tar", "size_bytes": 3620403200}],
+    "processed_size_bytes": 3620403200,
+    "other_urls": ["https://atlas.gs.washington.edu/mouse-atac/data/"], "file_types": ["FASTQ", "BED", "BAM", "bigwig", "MTX"], "access": "public"
+  },
+  {
+    "source_record_id": "wholemousebrain",
+    "raw_urls": ["https://assets.nemoarchive.org/dat-bej4ymm"],
+    "nemo_collection": "dat-bej4ymm", "nemo_size_bytes": 4890000000000,
+    "processed": [{"geo": "GSE246791", "file": "GSE246791_RAW.tar", "size_bytes": 160894914560}, {"geo": "GSE246791", "file": "GSE246791_wmb_bigwigs.tar.gz"}, {"geo": "GSE246791", "file": "GSE246791_wmb_enhancer.tar.gz"}, {"geo": "GSE246791", "file": "GSE246791_sa2.subclass.names.map.csv.gz"}],
+    "processed_size_bytes": 411246390322,
+    "other_urls": ["https://catlas.org/catlasv1/wholemousebrain/data/"], "file_types": ["FASTQ", "H5AD", "BED", "BEDPE", "bigwig", "CSV", "TSV"], "access": "public"
+  }
+]

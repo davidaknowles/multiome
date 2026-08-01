@@ -78,3 +78,43 @@ Added invariants for 14 CATLAS rows, all four mammalian species, DOI and portal
 coverage, and the current metadata-only availability state. Unit tests cover DOI
 normalization. The full catalog rebuild produces 144 rows while preserving the
 previous exact known-size totals.
+
+## 2026-08-01 — CATLAS publication download recovery
+
+### Repository audit
+
+Followed the data-availability statements for all 14 CATLAS publications because
+the CATLAS resource pages themselves still show “Coming Soon.” The studies resolve
+to ENA/SRA and NEMO for public sequence reads, EGA/dbGaP/PsychENCODE for controlled
+human reads, and GEO, Dropbox, BrainSCOPE, or author-hosted directories for
+processed matrices, fragments, peaks, and signal tracks. The four-species
+neocortex records share study PRJNA953340/GSE229169 but are filtered by species so
+raw storage is not duplicated across their catalog rows.
+
+The curated study-to-repository mapping is stored in
+`data/catlas_study_sources.json`. Reusable ENA TSV parsing and remote-size lookup
+live in the package; dataset-specific enumeration remains in
+`scripts/build_catlas_download_manifest.py`. The generated file-level manifest has
+1,116 unique record/role/URL entries: 1,010 direct ENA FASTQs, 38 selected GEO
+files, 32 BrainSCOPE assets, 13 Dropbox assets, and repository/controlled-access
+landing records. No large biological files were downloaded.
+
+### Storage and access findings
+
+Exact known CATLAS assets sum to 22.321 TB raw and 1.024 TB processed. These are
+lower bounds: dbGaP and PsychENCODE do not expose public file sizes, the NEMO human
+brain collection does not publish a manifest total through its current API, and
+legacy author portals contain additional derivative files that would overlap the
+selected GEO aggregates. EGA metadata contributes the controlled 7.523 TB human
+development BAM collection; its presence in the byte total does not imply public
+download access. Rows now state `public`, `controlled raw; public processed`, or a
+mixed-access description rather than CATLAS metadata-only access.
+
+### Validation
+
+The rebuilt 144-row catalog requires a raw repository and processed download for
+every CATLAS record, positive processed known-size storage for all 14 records, and
+raw known-size storage for 12; the two exceptions are dbGaP-only human studies.
+The manifest requires unique record/role/URL keys and a positive exact size for
+every asset counted toward storage. The full known catalog totals are now 111.666 TB raw and 2.933
+TB processed.

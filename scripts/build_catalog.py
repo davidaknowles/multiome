@@ -36,6 +36,8 @@ FIELDNAMES = [
 ROOT = Path(__file__).resolve().parents[1]
 ASSAY_COUNT_SNAPSHOT = ROOT / "data/cellxgene_h5ad_assay_counts_2026-08-01.csv"
 CURATED_LINKS = ROOT / "data/curated_collection_links.csv"
+CATLAS_SOURCES = ROOT / "data/catlas_study_sources.json"
+CATLAS_MANIFEST = ROOT / "data/catlas_download_manifest.csv"
 AUXILIARY_DATA_HOSTS = (
     "figshare", "zenodo", "registry.opendata.aws", "singlecell.broadinstitute.org",
     "celltype.info", ".cells.ucsc.edu", "assets.nemoarchive.org",
@@ -170,16 +172,20 @@ def tenx_rows() -> list[dict[str, object]]:
 
 
 def catlas_rows() -> list[dict[str, object]]:
-    """Normalize CATLAS mammalian scATAC records.
-
-    As of the retrieval date the CATLAS resource pages describe prospective
-    downloads as "Coming Soon" and expose no direct data assets or byte sizes.
-    The zero storage values are therefore explicit unknown/excluded values, not
-    estimates that the datasets require no storage.
-    """
+    """Normalize CATLAS records and join publication-linked download assets."""
+    sources = {
+        item["source_record_id"]: item
+        for item in json.loads(CATLAS_SOURCES.read_text(encoding="utf-8"))
+    }
+    manifest: dict[str, list[dict[str, str]]] = {}
+    with CATLAS_MANIFEST.open(newline="", encoding="utf-8") as handle:
+        for asset in csv.DictReader(handle):
+            manifest.setdefault(asset["source_record_id"], []).append(asset)
     rows = []
     today = date.today().isoformat()
     for dataset in catlas_mammalian_scatac():
+        source = sources[dataset["DataID"]]
+        assets = manifest[dataset["DataID"]]
         assay = dataset["Sequencing"]
         reported_cells = dataset["CellCount"]
         multiome_only = assay.lower() == "10x multiome"
@@ -188,7 +194,21 @@ def catlas_rows() -> list[dict[str, object]]:
             if multiome_only and reported_cells.replace(",", "").isdigit()
             else "not reported"
         )
-        filetypes: set[str] = set()
+        filetypes = set(source["file_types"])
+        filetypes.update(
+            asset["file_type"] for asset in assets
+            if asset["is_direct"] == "true" and asset["file_type"]
+        )
+        raw_bytes = sum(
+            int(asset["size_bytes"]) for asset in assets
+            if asset["role"] == "raw" and asset["count_in_storage"] == "true"
+        )
+        processed_bytes = source["processed_size_bytes"]
+        processed_urls = [
+            asset["url"] for asset in assets
+            if asset["role"] == "processed" and asset["is_direct"] == "true"
+        ]
+        processed_urls.extend(source.get("processed_pages", []))
         row = {
             "source": "CATLAS",
             "source_record_id": dataset["DataID"],
@@ -210,17 +230,17 @@ def catlas_rows() -> list[dict[str, object]]:
             ),
             "doi": extract_doi(dataset.get("Article", "")),
             "portal_url": CATLAS_RESOURCE.format(dataset_id=dataset["DataID"]),
-            "raw_data_urls": "",
-            "raw_data_status": "not supplied by CATLAS",
-            "processed_data_urls": "",
-            "other_data_urls": "",
-            "available_file_types": "",
-            "raw_storage_bytes": 0,
-            "raw_storage_basis": "not estimated: CATLAS supplies no direct raw asset or size",
-            "processed_storage_bytes": 0,
-            "processed_storage_basis": "not estimated: CATLAS downloads are marked Coming Soon",
-            "total_storage_bytes": 0,
-            "access": "public metadata only; CATLAS downloads marked Coming Soon",
+            "raw_data_urls": "; ".join(source["raw_urls"]),
+            "raw_data_status": "publication-linked repository located",
+            "processed_data_urls": "; ".join(dict.fromkeys(processed_urls)),
+            "other_data_urls": "; ".join(source.get("other_urls", [])),
+            "available_file_types": "; ".join(sorted(filetypes)),
+            "raw_storage_bytes": raw_bytes,
+            "raw_storage_basis": "exact known repository assets; zero excludes controlled/unknown-size assets" if raw_bytes else "not exposed by controlled repository",
+            "processed_storage_bytes": processed_bytes,
+            "processed_storage_basis": "exact known direct assets; lower bound when repositories expose additional files",
+            "total_storage_bytes": raw_bytes + processed_bytes,
+            "access": source["access"],
             "retrieved_date": today,
         }
         row.update(flags(filetypes))
