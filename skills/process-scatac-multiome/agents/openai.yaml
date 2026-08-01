@@ -1,0 +1,4 @@
+interface:
+  display_name: "scATAC and Multiome Processing"
+  short_description: "Prepare QCed data for sequence models"
+  default_prompt: "Use $process-scatac-multiome to design a reproducible scATAC or multiome processing and QC workflow for sequence-to-function modeling."

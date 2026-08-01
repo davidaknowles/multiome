@@ -118,3 +118,34 @@ raw known-size storage for 12; the two exceptions are dbGaP-only human studies.
 The manifest requires unique record/role/URL keys and a positive exact size for
 every asset counted toward storage. The full known catalog totals are now 111.666 TB raw and 2.933
 TB processed.
+
+## 2026-08-01 — scATAC/multiome processing skill
+
+### Design
+
+Added the repository-owned `process-scatac-multiome` skill. Its core workflow
+covers provenance, raw-read and fragment processing, layered library/cell QC,
+multiplet detection, multiome pairing, peak construction, annotation, pseudobulk
+targets, model-data exports, and hard failure conditions. Detailed guidance is
+split into QC/processing, training-data, and primary-source references so the core
+skill stays concise.
+
+### Model-facing decisions
+
+The skill treats QC thresholds as sample- and implementation-dependent starting
+points rather than universal gates. It preserves raw counts, biological
+replicates, and modality-specific failure states. For sequence-to-function work it
+prefers insertion profiles or replicate-aware counts over peak labels alone,
+requires explicit Tn5-bias evaluation, and separates ATAC and RNA measurement
+heads. Split guidance combines disjoint genomic groups with held-out biological
+units and keeps overlapping windows, alleles, orthologs, captures, and donors in
+one group. Peak definition, background sampling, normalization, and label
+construction must be fit without test data.
+
+### Validation
+
+Validated the skill frontmatter, name, directory layout, and interface metadata
+with the skill-creator validator. The skill is 173 lines and directly routes to
+three focused reference documents. Sources prioritize current ENCODE, 10x,
+SnapATAC2, Signac, and MACS3 documentation plus the ArchR, AMULET, COMPOSITE,
+ChromBPNet, scBasset, and Borzoi primary publications.
