@@ -5,8 +5,9 @@ main machine-readable table is
 [`data/public_10x_multiome_datasets.csv`](data/public_10x_multiome_datasets.csv).
 It contains **130 records** retrieved on 2026-08-01:
 
-- 107 CELLxGENE Discover datasets (EFO:0030059), spanning 29 collections and
-  27,161,660 listed cells;
+- 107 CELLxGENE Discover datasets (EFO:0030059), spanning 29 collections,
+  27,161,660 provider-listed cells, and 14,309,726 cells specifically labeled
+  10x Multiome in the current H5AD files;
 - 23 official 10x Genomics example datasets, spanning 126,477 reported nuclei
   plus seven pages where the provider does not report a recovered-nucleus count.
 
@@ -24,6 +25,12 @@ does not claim that every paper using the assay can be found from these two
 structured public catalogs. It does completely enumerate the current CELLxGENE
 10x multiome filter (the expected 107 records) and the current official 10x public
 dataset catalog.
+
+CELLxGENE's assay filter operates at dataset-record level. Of its 107 matching
+records, 72 contain additional assays. Therefore `cell_count` is the full provider
+record size while `multiome_cell_count` is the exact number of observations whose
+current H5AD `assay_ontology_term_id` is `EFO:0030059`. Storage modeling uses the
+corresponding `multiome_primary_cell_count`, not the larger record total.
 
 CELLxGENE H5AD assets generally contain the RNA representation. ATAC is only
 directly downloadable from CELLxGENE when a fragment asset is listed. A collection
@@ -48,9 +55,9 @@ Current aggregate storage represented by the table is:
 
 | Source | Raw | Processed | Basis |
 |---|---:|---:|---|
-| CELLxGENE | 163.34 TB | 0.692 TB | modeled raw; exact hosted assets |
+| CELLxGENE | 88.119 TB | 0.692 TB | modeled raw; exact hosted assets |
 | 10x Genomics | 1.226 TB | 1.218 TB | exact listed assets |
-| **Total** | **164.57 TB** | **1.909 TB** | decimal TB |
+| **Total** | **89.345 TB** | **1.909 TB** | decimal TB |
 
 ## Rebuild
 
@@ -64,6 +71,13 @@ Use `--cellxgene-only` to rebuild only the 107 CELLxGENE rows. The source endpoi
 are the [CELLxGENE Discover API](https://api.cellxgene.cziscience.com/curation/ui/)
 and the [10x Genomics dataset catalog](https://www.10xgenomics.com/datasets).
 
+Assay-specific counts are version-pinned in
+[`data/cellxgene_h5ad_assay_counts_2026-08-01.csv`](data/cellxgene_h5ad_assay_counts_2026-08-01.csv).
+If CELLxGENE revises a dataset, the main builder stops instead of silently using a
+stale count. Refresh the snapshot with `scripts/extract_cellxgene_assay_counts.py`;
+that maintenance command additionally requires `h5py` and `fsspec` and reads only
+H5AD observation metadata with HTTP range requests.
+
 ## Column dictionary
 
 | Column | Meaning |
@@ -72,11 +86,14 @@ and the [10x Genomics dataset catalog](https://www.10xgenomics.com/datasets).
 | `collection_id` | CELLxGENE collection UUID; blank for 10x examples |
 | `cell_count` | Provider-reported cells/nuclei; `not reported` if absent |
 | `primary_cell_count` | CELLxGENE non-derived observations; equal to cell count for 10x examples |
+| `multiome_cell_count` | Cells specifically assigned to 10x Multiome; exact from current H5AD metadata |
+| `multiome_primary_cell_count` | Non-derived Multiome cells used for raw-storage modeling |
 | `raw_data_urls` | Raw repository landing pages or direct input assets |
+| `raw_data_status` | Whether a raw repository/input link was found |
 | `processed_data_urls` | Direct downloadable provider assets |
+| `other_data_urls` | Auxiliary data portals (for example Figshare, Zenodo, or Single Cell Portal) |
 | `available_file_types` | All types directly advertised for the row |
 | `has_*` | Requested format flags; H5AD counts as AnnData |
 | `*_storage_bytes` | Integer byte totals suitable for aggregation |
 | `*_storage_basis` | Exact versus modeled provenance |
 | `access` | Public metadata/assets; linked repositories can impose access controls |
-

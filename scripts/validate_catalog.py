@@ -58,6 +58,10 @@ def main() -> None:
     assert len({row["collection_id"] for row in cxg}) == 29
     assert sum(int(row["cell_count"]) for row in cxg) == 27_161_660
     assert sum(int(row["primary_cell_count"]) for row in cxg) == 16_635_211
+    assert sum(int(row["multiome_cell_count"]) for row in cxg) == 14_309_726
+    assert sum(int(row["multiome_primary_cell_count"]) for row in cxg) == 8_974_236
+    assert sum(row["is_multiome_only"] == "false" for row in cxg) == 72
+    assert sum(not row["raw_data_urls"] for row in cxg) == 14
     assert all(row["tissues"] and row["species"] for row in rows)
     assert all(row["processed_data_urls"] for row in rows)
     assert all(int(row["processed_storage_bytes"]) > 0 for row in rows)
@@ -83,7 +87,7 @@ def main() -> None:
             {
                 url
                 for row in rows
-                for column in ("portal_url", "raw_data_urls", "processed_data_urls")
+                for column in ("portal_url", "raw_data_urls", "processed_data_urls", "other_data_urls")
                 for url in split_urls(row[column])
             }
         )

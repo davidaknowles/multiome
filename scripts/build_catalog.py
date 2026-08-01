@@ -21,12 +21,22 @@ from multiome_catalog.catalog import (
 
 FIELDNAMES = [
     "source", "source_record_id", "collection_id", "collection_title", "dataset_title",
-    "tissues", "species", "cell_count", "primary_cell_count", "doi", "portal_url",
-    "raw_data_urls", "processed_data_urls", "available_file_types", "has_adata",
+    "tissues", "species", "assays", "is_multiome_only", "cell_count", "primary_cell_count",
+    "multiome_cell_count", "multiome_primary_cell_count", "multiome_cell_count_basis",
+    "doi", "portal_url", "raw_data_urls", "raw_data_status", "processed_data_urls",
+    "other_data_urls", "available_file_types", "has_adata",
     "has_bigwig", "has_fragments", "has_bed", "raw_storage_bytes", "raw_storage_basis",
     "processed_storage_bytes", "processed_storage_basis", "total_storage_bytes",
     "access", "retrieved_date",
 ]
+
+ROOT = Path(__file__).resolve().parents[1]
+ASSAY_COUNT_SNAPSHOT = ROOT / "data/cellxgene_h5ad_assay_counts_2026-08-01.csv"
+CURATED_LINKS = ROOT / "data/curated_collection_links.csv"
+AUXILIARY_DATA_HOSTS = (
+    "figshare", "zenodo", "registry.opendata.aws", "singlecell.broadinstitute.org",
+    "celltype.info", ".cells.ucsc.edu", "assets.nemoarchive.org",
+)
 
 
 def joined_urls(assets: list[dict], role: str | None = None) -> str:
@@ -47,11 +57,25 @@ def flags(filetypes: set[str]) -> dict[str, str]:
 
 def cellxgene_rows() -> list[dict[str, object]]:
     datasets, collections = cellxgene_multiome()
+    with ASSAY_COUNT_SNAPSHOT.open(newline="", encoding="utf-8") as handle:
+        assay_counts = {row["dataset_id"]: row for row in csv.DictReader(handle)}
+    curated_raw: dict[str, list[str]] = {}
+    with CURATED_LINKS.open(newline="", encoding="utf-8") as handle:
+        for link in csv.DictReader(handle):
+            if link["role"] == "raw":
+                curated_raw.setdefault(link["collection_id"], []).append(link["url"])
     rows = []
     today = date.today().isoformat()
     for dataset in datasets:
         collection = collections[dataset["collection_id"]]
         raw_links = [link["link_url"] for link in collection.get("links", []) if link["link_type"] == "RAW_DATA"]
+        raw_links.extend(curated_raw.get(dataset["collection_id"], []))
+        raw_links = list(dict.fromkeys(raw_links))
+        other_links = [
+            link["link_url"] for link in collection.get("links", [])
+            if link["link_type"] not in {"RAW_DATA", "PROTOCOL"}
+            and any(host in link["link_url"].lower() for host in AUXILIARY_DATA_HOSTS)
+        ]
         assets = dataset.get("assets", [])
         filetypes = {
             {"ATAC_FRAGMENT": "fragment", "ATAC_INDEX": "fragment_index"}.get(
@@ -59,23 +83,39 @@ def cellxgene_rows() -> list[dict[str, object]]:
             )
             for asset in assets
         }
+        count_row = assay_counts.get(dataset["dataset_id"])
+        if count_row is None or count_row["dataset_version_id"] != dataset["dataset_version_id"]:
+            raise RuntimeError(
+                f"Assay-count snapshot is missing current version for {dataset['dataset_id']}; "
+                "run scripts/extract_cellxgene_assay_counts.py"
+            )
         primary_cells = dataset.get("primary_cell_count", 0)
-        raw_bytes = round(primary_cells * RAW_BYTES_PER_PRIMARY_CELL) if primary_cells else 0
+        multiome_cells = int(count_row["multiome_cell_count"])
+        multiome_primary_cells = int(count_row["multiome_primary_cell_count"])
+        raw_bytes = round(multiome_primary_cells * RAW_BYTES_PER_PRIMARY_CELL) if multiome_primary_cells else 0
         processed_bytes = sum(asset.get("filesize", 0) for asset in assets)
+        assay_names = labels(dataset.get("assay", []))
+        multiome_only = len(dataset.get("assay", [])) == 1
         row = {
             "source": "CELLxGENE Discover", "source_record_id": dataset["dataset_id"],
             "collection_id": dataset["collection_id"], "collection_title": dataset["collection_name"],
             "dataset_title": dataset["title"], "tissues": labels(dataset.get("tissue", [])),
-            "species": labels(dataset.get("organism", [])), "cell_count": dataset["cell_count"],
-            "primary_cell_count": primary_cells, "doi": dataset.get("collection_doi") or "",
+            "species": labels(dataset.get("organism", [])), "assays": assay_names,
+            "is_multiome_only": str(multiome_only).lower(), "cell_count": dataset["cell_count"],
+            "primary_cell_count": primary_cells, "multiome_cell_count": multiome_cells,
+            "multiome_primary_cell_count": multiome_primary_cells,
+            "multiome_cell_count_basis": "exact current H5AD obs assay labels",
+            "doi": dataset.get("collection_doi") or "",
             "portal_url": f"https://cellxgene.cziscience.com/collections/{dataset['collection_id']}",
             "raw_data_urls": "; ".join(raw_links),
+            "raw_data_status": "collection/repository link supplied" if raw_links else "not supplied by provider or publication",
             "processed_data_urls": "; ".join(asset["url"] for asset in assets),
+            "other_data_urls": "; ".join(dict.fromkeys(other_links)),
             "available_file_types": "; ".join(sorted(filetypes)),
             "raw_storage_bytes": raw_bytes,
             "raw_storage_basis": (
-                "modeled from 9.82 MB/primary cell; primary row" if raw_bytes
-                else "0: derived/non-primary row (avoids duplicate raw-data accounting)"
+                "modeled from 9.82 MB/multiome primary cell" if raw_bytes
+                else "0: no multiome primary cells (derived row; avoids duplicate accounting)"
             ),
             "processed_storage_bytes": processed_bytes,
             "processed_storage_basis": "exact sum of CELLxGENE asset sizes",
@@ -104,11 +144,17 @@ def tenx_rows() -> list[dict[str, object]]:
             "source": "10x Genomics", "source_record_id": dataset["slug"], "collection_id": "",
             "collection_title": "10x Genomics public datasets", "dataset_title": dataset["title"],
             "tissues": "; ".join(dataset.get("anatomicalEntities", [])),
-            "species": "; ".join(dataset.get("species", [])),
+            "species": "; ".join(dataset.get("species", [])), "assays": "10x multiome",
+            "is_multiome_only": "true",
             "cell_count": dataset.get("cellNucleiCount") or "not reported",
             "primary_cell_count": dataset.get("cellNucleiCount") or "not reported",
+            "multiome_cell_count": dataset.get("cellNucleiCount") or "not reported",
+            "multiome_primary_cell_count": dataset.get("cellNucleiCount") or "not reported",
+            "multiome_cell_count_basis": "provider-reported recovered nuclei",
             "doi": "", "portal_url": portal_url, "raw_data_urls": joined_urls(raw_assets),
+            "raw_data_status": "direct FASTQ/input asset supplied",
             "processed_data_urls": joined_urls(processed_assets),
+            "other_data_urls": "",
             "available_file_types": "; ".join(sorted(filetypes)),
             "raw_storage_bytes": raw_bytes, "raw_storage_basis": "exact sum of 10x input asset sizes",
             "processed_storage_bytes": processed_bytes,
@@ -123,7 +169,9 @@ def tenx_rows() -> list[dict[str, object]]:
 def write_csv(path: Path, rows: list[dict[str, object]]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", newline="", encoding="utf-8") as handle:
-        writer = csv.DictWriter(handle, fieldnames=FIELDNAMES, extrasaction="ignore")
+        writer = csv.DictWriter(
+            handle, fieldnames=FIELDNAMES, extrasaction="ignore", lineterminator="\n"
+        )
         writer.writeheader()
         writer.writerows(rows)
 
