@@ -45,3 +45,36 @@ no missing tissue/species values, a processed URL for every row, version-matched
 H5AD assay counts, and format flags consistent with advertised file types. Exact
 byte totals are summed directly from provider metadata. URL reachability is checked
 with HTTP range requests in the validation script to avoid downloading large assets.
+
+## 2026-08-01 — CATLAS mammalian scATAC extension
+
+### Selection and implementation
+
+Added the 14 records returned by CATLAS for the four mammalian species (`Homo
+Sapiens`, `Mus musculus`, `Macaca mulatta`, and `Callithrix jacchus`) and the
+chromatin-accessibility technologies `snATAC-seq`, `sci-ATAC-seq`, and `10x
+multiome`. A second content filter requires “ATAC” or “multiome” in the returned
+sequencing label. This retains mixed ATAC/RNA and multiome/snm3C records while
+excluding RNA-only, Paired-Tag-only, snm3C-only, and fly records.
+
+Reusable POST retrieval and DOI parsing live in `src/multiome_catalog/catalog.py`;
+CATLAS-specific normalization remains in the output builder. Provider spellings,
+sample descriptions, sequencing labels, and reported cell-count strings are kept
+verbatim. The resulting source breakdown is 107 CELLxGENE, 23 10x Genomics, and
+14 CATLAS records.
+
+### Data availability and storage
+
+The CATLAS browse interface advertises a Download action, but each of the 14
+resource pages currently marks the prospective products “Coming Soon” and exposes
+no direct assets. The new rows therefore contain portal URLs and publication DOIs
+but no raw/processed URLs or available-file claims. Storage values are zero only
+to preserve integer aggregation; their basis fields state that sizes are unknown,
+so aggregate totals exclude CATLAS rather than estimating its data at zero bytes.
+
+### Validation
+
+Added invariants for 14 CATLAS rows, all four mammalian species, DOI and portal
+coverage, and the current metadata-only availability state. Unit tests cover DOI
+normalization. The full catalog rebuild produces 144 rows while preserving the
+previous exact known-size totals.

@@ -1,4 +1,4 @@
-"""Fetch and normalize CELLxGENE and 10x Genomics public dataset metadata."""
+"""Fetch public chromatin-accessibility dataset metadata."""
 
 from __future__ import annotations
 
@@ -17,7 +17,16 @@ CELLXGENE_COLLECTION = (
     "https://api.cellxgene.cziscience.com/curation/v1/collections/{collection_id}"
 )
 TENX_SITEMAP = "https://www.10xgenomics.com/sitemap-0.xml"
+CATLAS_BROWSE_API = "https://www.catlas.org/catlas/dataset_browse.php"
+CATLAS_RESOURCE = "https://www.catlas.org/catlas/dataset_resource.php?ID={dataset_id}"
 MULTIOME_EFO = "EFO:0030059"
+MAMMAL_SPECIES = {
+    "Homo Sapiens",
+    "Mus musculus",
+    "Macaca mulatta",
+    "Callithrix jacchus",
+}
+CATLAS_ATAC_TECHNOLOGIES = {"snATAC-seq", "sci-ATAC-seq", "10x multiome"}
 
 # Calibrated against the 10x 10k PBMC Chromium X example: 107,754,854,400
 # bytes FASTQ / 10,974 recovered nuclei. See data/storage_model.csv.
@@ -41,6 +50,19 @@ def fetch_bytes(url: str, timeout: int = 120, attempts: int = 3) -> bytes:
 
 def fetch_json(url: str) -> Any:
     return json.loads(fetch_bytes(url))
+
+
+def fetch_json_post(url: str, payload: dict[str, str]) -> Any:
+    request = urllib.request.Request(
+        url,
+        data=json.dumps(payload).encode("utf-8"),
+        headers={
+            "Content-Type": "application/json",
+            "User-Agent": "multiome-catalog/0.1",
+        },
+    )
+    with urllib.request.urlopen(request, timeout=120) as response:
+        return json.load(response)
 
 
 def labels(items: Iterable[dict[str, Any]]) -> str:
@@ -121,6 +143,39 @@ def tenx_multiome() -> list[tuple[str, dict[str, Any]]]:
     with ThreadPoolExecutor(max_workers=24) as pool:
         pages = list(pool.map(_fetch_tenx_page, tenx_dataset_urls()))
     return [(url, page) for url, page in pages if page is not None]
+
+
+def catlas_mammalian_scatac() -> list[dict[str, Any]]:
+    """Return mammalian CATLAS records containing a chromatin-accessibility assay."""
+    records = fetch_json_post(
+        CATLAS_BROWSE_API,
+        {
+            "species": ";".join(sorted(MAMMAL_SPECIES)),
+            "technology": ";".join(sorted(CATLAS_ATAC_TECHNOLOGIES)),
+        },
+    )
+    if not isinstance(records, list):
+        raise RuntimeError(f"Unexpected CATLAS response: {records!r}")
+    return sorted(
+        (
+            record
+            for record in records
+            if record.get("Species") in MAMMAL_SPECIES
+            and (
+                "atac" in record.get("Sequencing", "").lower()
+                or "multiome" in record.get("Sequencing", "").lower()
+            )
+        ),
+        key=lambda record: record["DataID"],
+    )
+
+
+def extract_doi(article: str) -> str:
+    """Extract and lightly normalize a DOI from CATLAS publication text."""
+    match = re.search(r"10\.\d{4,9}/[-._;()/:A-Z0-9]+", article, flags=re.IGNORECASE)
+    if not match:
+        return ""
+    return match.group(0).rstrip(".,;)")
 
 
 def classify_file(title: str, url: str) -> str:

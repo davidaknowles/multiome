@@ -52,8 +52,8 @@ def main() -> None:
         rows = list(csv.DictReader(handle))
 
     sources = Counter(row["source"] for row in rows)
-    assert len(rows) == 130, len(rows)
-    assert sources == {"CELLxGENE Discover": 107, "10x Genomics": 23}, sources
+    assert len(rows) == 144, len(rows)
+    assert sources == {"CELLxGENE Discover": 107, "10x Genomics": 23, "CATLAS": 14}, sources
     cxg = [row for row in rows if row["source"] == "CELLxGENE Discover"]
     assert len({row["collection_id"] for row in cxg}) == 29
     assert sum(int(row["cell_count"]) for row in cxg) == 27_161_660
@@ -63,8 +63,9 @@ def main() -> None:
     assert sum(row["is_multiome_only"] == "false" for row in cxg) == 72
     assert sum(not row["raw_data_urls"] for row in cxg) == 14
     assert all(row["tissues"] and row["species"] for row in rows)
-    assert all(row["processed_data_urls"] for row in rows)
-    assert all(int(row["processed_storage_bytes"]) > 0 for row in rows)
+    hosted = [row for row in rows if row["source"] != "CATLAS"]
+    assert all(row["processed_data_urls"] for row in hosted)
+    assert all(int(row["processed_storage_bytes"]) > 0 for row in hosted)
     assert sum(row["has_adata"] == "true" for row in cxg) == 107
     assert sum(row["has_fragments"] == "true" for row in cxg) == 12
     tenx = [row for row in rows if row["source"] == "10x Genomics"]
@@ -72,6 +73,13 @@ def main() -> None:
     assert sum(row["has_bed"] == "true" for row in tenx) == 23
     assert sum(row["has_bigwig"] == "true" for row in tenx) == 18
     assert sum(row["cell_count"] == "not reported" for row in tenx) == 7
+    catlas = [row for row in rows if row["source"] == "CATLAS"]
+    assert {row["species"] for row in catlas} == {
+        "Homo Sapiens", "Mus musculus", "Macaca mulatta", "Callithrix jacchus"
+    }
+    assert all(row["portal_url"] and row["doi"] for row in catlas)
+    assert all(not row["processed_data_urls"] for row in catlas)
+    assert all(row["access"] == "public metadata only; CATLAS downloads marked Coming Soon" for row in catlas)
 
     print(f"validated {len(rows)} rows: {dict(sources)}")
     print(

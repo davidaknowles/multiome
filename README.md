@@ -1,15 +1,19 @@
-# Public 10x Multiome dataset catalog
+# Public multiome and scATAC dataset catalog
 
-This repository catalogs public 10x Multiome ATAC + Gene Expression datasets. The
-main machine-readable table is
+This repository catalogs public 10x Multiome ATAC + Gene Expression datasets and
+mammalian single-cell chromatin-accessibility datasets indexed by CATLAS. The main
+machine-readable table is
 [`data/public_10x_multiome_datasets.csv`](data/public_10x_multiome_datasets.csv).
-It contains **130 records** retrieved on 2026-08-01:
+The filename is retained for compatibility with the original 10x-only catalog. It
+contains **144 provider records** retrieved on 2026-08-01:
 
 - 107 CELLxGENE Discover datasets (EFO:0030059), spanning 29 collections,
   27,161,660 provider-listed cells, and 14,309,726 cells specifically labeled
   10x Multiome in the current H5AD files;
 - 23 official 10x Genomics example datasets, spanning 126,477 reported nuclei
-  plus seven pages where the provider does not report a recovered-nucleus count.
+  plus seven pages where the provider does not report a recovered-nucleus count;
+- 14 mammalian CATLAS chromatin-accessibility records: seven human, five mouse,
+  one rhesus macaque, and one common marmoset dataset.
 
 The CSV is the complete requested table. It includes tissues, species, cell count,
 raw and processed URLs, DOI, portal URL, file-type inventory and boolean columns
@@ -21,10 +25,15 @@ processed, and combined storage in bytes so totals are machine-summable.
 “Dataset” means a provider catalog record, not necessarily an independent
 experiment. CELLxGENE contains many derived cell-type subsets and alternate views;
 `primary_cell_count` distinguishes these from primary observations. The catalog
-does not claim that every paper using the assay can be found from these two
+does not claim that every paper using the assay can be found from these three
 structured public catalogs. It does completely enumerate the current CELLxGENE
 10x multiome filter (the expected 107 records) and the current official 10x public
-dataset catalog.
+dataset catalog. The CATLAS addition includes records returned for the four
+mammalian species when filtering for `snATAC-seq`, `sci-ATAC-seq`, or `10x
+multiome`; records may also contain paired snRNA-seq or snm3C-seq.
+CATLAS records are retained as source records even when their underlying study may
+also appear through CELLxGENE; the table does not treat cross-provider records as
+independent experiments or sum their reported cells into a deduplicated total.
 
 CELLxGENE's assay filter operates at dataset-record level. Of its 107 matching
 records, 72 contain additional assays. Therefore `cell_count` is the full provider
@@ -37,6 +46,13 @@ directly downloadable from CELLxGENE when a fragment asset is listed. A collecti
 level raw-data link may point to GEO, HCA, EGA, Synapse, ArrayExpress, or another
 repository and may require registration or controlled-access approval. Blank raw
 URL fields mean CELLxGENE did not publish a link, not that raw reads cannot exist.
+
+As retrieved, all 14 CATLAS detail pages label their download products “Coming
+Soon” and expose no direct raw or processed asset URLs or byte sizes. Their portal
+and publication DOI are recorded, format flags are false, storage fields are zero,
+and the basis/access columns explicitly mark these values as unknown and excluded.
+The CATLAS `cell_count` values are retained verbatim because several are bounds,
+approximations, or combined ATAC/RNA counts.
 
 ## Storage estimates
 
@@ -57,7 +73,8 @@ Current aggregate storage represented by the table is:
 |---|---:|---:|---|
 | CELLxGENE | 88.119 TB | 0.692 TB | modeled raw; exact hosted assets |
 | 10x Genomics | 1.226 TB | 1.218 TB | exact listed assets |
-| **Total** | **89.345 TB** | **1.909 TB** | decimal TB |
+| CATLAS | not available | not available | no downloadable assets/sizes currently listed |
+| **Known total** | **89.345 TB** | **1.909 TB** | decimal TB; excludes CATLAS unknowns |
 
 ## Rebuild
 
@@ -67,9 +84,11 @@ The builder uses only the Python standard library:
 PYTHONPATH=src python scripts/build_catalog.py
 ```
 
-Use `--cellxgene-only` to rebuild only the 107 CELLxGENE rows. The source endpoints
-are the [CELLxGENE Discover API](https://api.cellxgene.cziscience.com/curation/ui/)
-and the [10x Genomics dataset catalog](https://www.10xgenomics.com/datasets).
+Use `--cellxgene-only` to rebuild only the 107 CELLxGENE rows, or
+`--exclude-catlas` for the original 130-row 10x catalog. The source endpoints are
+the [CELLxGENE Discover API](https://api.cellxgene.cziscience.com/curation/ui/),
+the [10x Genomics dataset catalog](https://www.10xgenomics.com/datasets), and the
+[CATLAS browse catalog](https://www.catlas.org/catlas/browse.php).
 
 Assay-specific counts are version-pinned in
 [`data/cellxgene_h5ad_assay_counts_2026-08-01.csv`](data/cellxgene_h5ad_assay_counts_2026-08-01.csv).
@@ -82,10 +101,10 @@ H5AD observation metadata with HTTP range requests.
 
 | Column | Meaning |
 |---|---|
-| `source_record_id` | Stable CELLxGENE dataset UUID or 10x page slug |
-| `collection_id` | CELLxGENE collection UUID; blank for 10x examples |
+| `source_record_id` | CELLxGENE UUID, 10x page slug, or CATLAS `DataID` |
+| `collection_id` | CELLxGENE collection UUID; blank for 10x and CATLAS records |
 | `cell_count` | Provider-reported cells/nuclei; `not reported` if absent |
-| `primary_cell_count` | CELLxGENE non-derived observations; equal to cell count for 10x examples |
+| `primary_cell_count` | CELLxGENE non-derived observations; equal to cell count for 10x examples; unavailable from CATLAS |
 | `multiome_cell_count` | Cells specifically assigned to 10x Multiome; exact from current H5AD metadata |
 | `multiome_primary_cell_count` | Non-derived Multiome cells used for raw-storage modeling |
 | `raw_data_urls` | Raw repository landing pages or direct input assets |
@@ -94,6 +113,6 @@ H5AD observation metadata with HTTP range requests.
 | `other_data_urls` | Auxiliary data portals (for example Figshare, Zenodo, or Single Cell Portal) |
 | `available_file_types` | All types directly advertised for the row |
 | `has_*` | Requested format flags; H5AD counts as AnnData |
-| `*_storage_bytes` | Integer byte totals suitable for aggregation |
+| `*_storage_bytes` | Integer byte totals suitable for known-size aggregation; CATLAS unknowns use zero with an explicit basis |
 | `*_storage_basis` | Exact versus modeled provenance |
 | `access` | Public metadata/assets; linked repositories can impose access controls |

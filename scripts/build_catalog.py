@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build CSV tables from live CELLxGENE and 10x Genomics metadata."""
+"""Build CSV tables from live CELLxGENE, 10x Genomics, and CATLAS metadata."""
 
 from __future__ import annotations
 
@@ -10,9 +10,12 @@ from datetime import date
 from pathlib import Path
 
 from multiome_catalog.catalog import (
+    CATLAS_RESOURCE,
     RAW_BYTES_PER_PRIMARY_CELL,
+    catlas_mammalian_scatac,
     cellxgene_multiome,
     classify_file,
+    extract_doi,
     labels,
     tenx_files,
     tenx_multiome,
@@ -166,6 +169,65 @@ def tenx_rows() -> list[dict[str, object]]:
     return rows
 
 
+def catlas_rows() -> list[dict[str, object]]:
+    """Normalize CATLAS mammalian scATAC records.
+
+    As of the retrieval date the CATLAS resource pages describe prospective
+    downloads as "Coming Soon" and expose no direct data assets or byte sizes.
+    The zero storage values are therefore explicit unknown/excluded values, not
+    estimates that the datasets require no storage.
+    """
+    rows = []
+    today = date.today().isoformat()
+    for dataset in catlas_mammalian_scatac():
+        assay = dataset["Sequencing"]
+        reported_cells = dataset["CellCount"]
+        multiome_only = assay.lower() == "10x multiome"
+        exact_multiome_cells = (
+            reported_cells.replace(",", "")
+            if multiome_only and reported_cells.replace(",", "").isdigit()
+            else "not reported"
+        )
+        filetypes: set[str] = set()
+        row = {
+            "source": "CATLAS",
+            "source_record_id": dataset["DataID"],
+            "collection_id": "",
+            "collection_title": "CATLAS mammalian scATAC datasets",
+            "dataset_title": dataset["DataName"],
+            "tissues": dataset["SampleInfo"],
+            "species": dataset["Species"],
+            "assays": assay,
+            "is_multiome_only": str(multiome_only).lower(),
+            "cell_count": reported_cells,
+            "primary_cell_count": "not reported",
+            "multiome_cell_count": exact_multiome_cells,
+            "multiome_primary_cell_count": "not reported",
+            "multiome_cell_count_basis": (
+                "provider-reported paired multiome nuclei"
+                if multiome_only
+                else "not applicable or not separable from mixed modalities"
+            ),
+            "doi": extract_doi(dataset.get("Article", "")),
+            "portal_url": CATLAS_RESOURCE.format(dataset_id=dataset["DataID"]),
+            "raw_data_urls": "",
+            "raw_data_status": "not supplied by CATLAS",
+            "processed_data_urls": "",
+            "other_data_urls": "",
+            "available_file_types": "",
+            "raw_storage_bytes": 0,
+            "raw_storage_basis": "not estimated: CATLAS supplies no direct raw asset or size",
+            "processed_storage_bytes": 0,
+            "processed_storage_basis": "not estimated: CATLAS downloads are marked Coming Soon",
+            "total_storage_bytes": 0,
+            "access": "public metadata only; CATLAS downloads marked Coming Soon",
+            "retrieved_date": today,
+        }
+        row.update(flags(filetypes))
+        rows.append(row)
+    return rows
+
+
 def write_csv(path: Path, rows: list[dict[str, object]]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", newline="", encoding="utf-8") as handle:
@@ -180,10 +242,13 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", type=Path, default=Path("data/public_10x_multiome_datasets.csv"))
     parser.add_argument("--cellxgene-only", action="store_true")
+    parser.add_argument("--exclude-catlas", action="store_true")
     args = parser.parse_args()
     rows = cellxgene_rows()
     if not args.cellxgene_only:
         rows.extend(tenx_rows())
+        if not args.exclude_catlas:
+            rows.extend(catlas_rows())
     write_csv(args.output, rows)
     print(json.dumps({"rows": len(rows), "output": str(args.output)}, indent=2))
 

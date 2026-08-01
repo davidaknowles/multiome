@@ -1,9 +1,8 @@
 [project]
 name = "multiome-catalog"
 version = "0.1.0"
-description = "Reproducible catalog of public 10x Multiome datasets"
+description = "Reproducible catalog of public multiome and scATAC datasets"
 requires-python = ">=3.10"
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
-
