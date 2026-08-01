@@ -52,8 +52,14 @@ def main() -> None:
         rows = list(csv.DictReader(handle))
 
     sources = Counter(row["source"] for row in rows)
-    assert len(rows) == 144, len(rows)
-    assert sources == {"CELLxGENE Discover": 107, "10x Genomics": 23, "CATLAS": 14}, sources
+    assert len(rows) == 312, len(rows)
+    assert sources == {
+        "CELLxGENE Discover": 107,
+        "10x Genomics": 23,
+        "CATLAS": 14,
+        "GEO source study": 8,
+        "ENCODE": 160,
+    }, sources
     cxg = [row for row in rows if row["source"] == "CELLxGENE Discover"]
     assert len({row["collection_id"] for row in cxg}) == 29
     assert sum(int(row["cell_count"]) for row in cxg) == 27_161_660
@@ -63,7 +69,10 @@ def main() -> None:
     assert sum(row["is_multiome_only"] == "false" for row in cxg) == 72
     assert sum(not row["raw_data_urls"] for row in cxg) == 14
     assert all(row["tissues"] and row["species"] for row in rows)
-    hosted = [row for row in rows if row["source"] != "CATLAS"]
+    hosted = [
+        row for row in rows
+        if row["source"] not in {"CATLAS", "GEO source study"}
+    ]
     assert all(row["processed_data_urls"] for row in hosted)
     assert all(int(row["processed_storage_bytes"]) > 0 for row in hosted)
     assert sum(row["has_adata"] == "true" for row in cxg) == 107
@@ -85,6 +94,29 @@ def main() -> None:
     assert sum(row["has_bigwig"] == "true" for row in catlas) >= 5
     assert sum(row["has_fragments"] == "true" for row in catlas) >= 2
     assert sum(row["has_bed"] == "true" for row in catlas) >= 6
+
+    geo = [row for row in rows if row["source"] == "GEO source study"]
+    assert {row["source_record_id"] for row in geo} == {
+        "GSE166188", "GSE193240", "GSE194122", "GSE195452",
+        "GSE199636", "GSE199994", "GSE232222", "GSE238275",
+    }
+    assert all(row["raw_data_urls"] and row["processed_data_urls"] for row in geo)
+    assert all(row["species"] == "Homo sapiens" for row in geo)
+    assert not any(row["source_record_id"] == "GSE196235" for row in geo)
+    assert sum("GSE196235" in " ".join(row.values()) for row in rows) == 1
+
+    encode = [row for row in rows if row["source"] == "ENCODE"]
+    assert Counter(row["species"] for row in encode) == {
+        "Homo sapiens": 117, "Mus musculus": 43
+    }
+    assert all(row["raw_data_urls"] and row["processed_data_urls"] for row in encode)
+    assert all(int(row["raw_storage_bytes"]) > 0 for row in encode)
+    assert all(int(row["processed_storage_bytes"]) > 0 for row in encode)
+    assert {
+        "ENCSR882CKY", "ENCSR618WVK", "ENCSR925IHI", "ENCSR449VCG",
+        "ENCSR923FKN", "ENCSR420IUS", "ENCSR775AZP", "ENCSR316WAS",
+        "ENCSR222ZFD", "ENCSR128ZLB", "ENCSR871JTA",
+    }.issubset({row["source_record_id"] for row in encode})
 
     manifest_path = args.catalog.parent / "catlas_download_manifest.csv"
     with manifest_path.open(newline="", encoding="utf-8") as handle:

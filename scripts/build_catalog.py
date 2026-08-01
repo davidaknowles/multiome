@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build CSV tables from live CELLxGENE, 10x Genomics, and CATLAS metadata."""
+"""Build the public chromatin-accessibility and multiome source catalog."""
 
 from __future__ import annotations
 
@@ -15,8 +15,12 @@ from multiome_catalog.catalog import (
     catlas_mammalian_scatac,
     cellxgene_multiome,
     classify_file,
+    encode_multiomics_series,
+    encode_series_files,
     extract_doi,
+    geo_series_supplementary_urls,
     labels,
+    nested_numeric_values,
     tenx_files,
     tenx_multiome,
 )
@@ -38,6 +42,7 @@ ASSAY_COUNT_SNAPSHOT = ROOT / "data/cellxgene_h5ad_assay_counts_2026-08-01.csv"
 CURATED_LINKS = ROOT / "data/curated_collection_links.csv"
 CATLAS_SOURCES = ROOT / "data/catlas_study_sources.json"
 CATLAS_MANIFEST = ROOT / "data/catlas_download_manifest.csv"
+CURATED_MULTIOME_SOURCES = ROOT / "data/curated_multiome_source_studies.json"
 AUXILIARY_DATA_HOSTS = (
     "figshare", "zenodo", "registry.opendata.aws", "singlecell.broadinstitute.org",
     "celltype.info", ".cells.ucsc.edu", "assets.nemoarchive.org",
@@ -248,6 +253,122 @@ def catlas_rows() -> list[dict[str, object]]:
     return rows
 
 
+def curated_multiome_source_rows() -> list[dict[str, object]]:
+    """Add primary GEO studies used by MiniAtlas without adding MiniAtlas itself."""
+    records = json.loads(CURATED_MULTIOME_SOURCES.read_text(encoding="utf-8"))
+    rows = []
+    today = date.today().isoformat()
+    for record in records:
+        processed_urls = geo_series_supplementary_urls(record["source_record_id"])
+        filetypes = {classify_file("", url) for url in processed_urls}
+        raw_urls = record["raw_data_urls"]
+        row = {
+            "source": "GEO source study",
+            "source_record_id": record["source_record_id"],
+            "collection_id": "",
+            "collection_title": "Curated primary multiome source studies",
+            "dataset_title": record["title"],
+            "tissues": record["tissues"],
+            "species": record["species"],
+            "assays": record["assays"],
+            "is_multiome_only": "true",
+            "cell_count": "not reported",
+            "primary_cell_count": "not reported",
+            "multiome_cell_count": "not reported",
+            "multiome_primary_cell_count": "not reported",
+            "multiome_cell_count_basis": "not normalized at study level",
+            "doi": record.get("doi", ""),
+            "portal_url": f"https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc={record['source_record_id']}",
+            "raw_data_urls": "; ".join(raw_urls),
+            "raw_data_status": "primary repository located; use selected GSM pairs in registry notes",
+            "processed_data_urls": "; ".join(processed_urls),
+            "other_data_urls": "",
+            "available_file_types": "; ".join(sorted(filetypes)),
+            "raw_storage_bytes": 0,
+            "raw_storage_basis": "not snapshotted; repository project may include non-multiome runs",
+            "processed_storage_bytes": 0,
+            "processed_storage_basis": "not snapshotted; direct GEO supplementary files enumerated",
+            "total_storage_bytes": 0,
+            "access": "public",
+            "retrieved_date": today,
+        }
+        row.update(flags(filetypes))
+        rows.append(row)
+    return rows
+
+
+def encode_rows() -> list[dict[str, object]]:
+    """Normalize every released ENCODE MultiomicsSeries and its component assets."""
+    rows = []
+    today = date.today().isoformat()
+    for series in encode_multiomics_series():
+        assets = encode_series_files(series)
+        raw_assets = [asset for asset in assets if asset["role"] == "raw"]
+        processed_assets = [asset for asset in assets if asset["role"] == "processed"]
+        filetypes = {asset["filetype"] for asset in assets}
+        raw_bytes = sum(int(asset["bytes"]) for asset in raw_assets)
+        processed_bytes = sum(int(asset["bytes"]) for asset in processed_assets)
+        estimated_cells = nested_numeric_values(series, "estimated_number_of_cells")
+        cell_count: int | str = max(estimated_cells) if estimated_cells else "not reported"
+        species = "; ".join(
+            sorted({item["scientific_name"] for item in series.get("organism", [])})
+        )
+        tissues = "; ".join(
+            sorted(
+                {
+                    item.get("term_name", "")
+                    for item in series.get("biosample_ontology", [])
+                    if item.get("term_name")
+                }
+            )
+        ) or series.get("biosample_summary", "")
+        assays = "; ".join(
+            sorted(
+                {
+                    dataset.get("assay_term_name", "")
+                    for dataset in series.get("related_datasets", [])
+                    if dataset.get("assay_term_name")
+                }
+            )
+        )
+        accession = series["accession"]
+        row = {
+            "source": "ENCODE",
+            "source_record_id": accession,
+            "collection_id": "",
+            "collection_title": "ENCODE released multiomics series",
+            "dataset_title": series.get("biosample_summary") or accession,
+            "tissues": tissues,
+            "species": species,
+            "assays": assays,
+            "is_multiome_only": "true",
+            "cell_count": cell_count,
+            "primary_cell_count": cell_count,
+            "multiome_cell_count": cell_count,
+            "multiome_primary_cell_count": cell_count,
+            "multiome_cell_count_basis": (
+                "provider-reported estimated nuclei" if estimated_cells else "not reported"
+            ),
+            "doi": "",
+            "portal_url": f"https://www.encodeproject.org/experiments/{accession}/",
+            "raw_data_urls": joined_urls(raw_assets),
+            "raw_data_status": "direct released FASTQ assets supplied",
+            "processed_data_urls": joined_urls(processed_assets),
+            "other_data_urls": "",
+            "available_file_types": "; ".join(sorted(filetypes)),
+            "raw_storage_bytes": raw_bytes,
+            "raw_storage_basis": "exact sum of released ENCODE read and index-read FASTQs",
+            "processed_storage_bytes": processed_bytes,
+            "processed_storage_basis": "exact sum of other released ENCODE component assets",
+            "total_storage_bytes": raw_bytes + processed_bytes,
+            "access": "public",
+            "retrieved_date": today,
+        }
+        row.update(flags(filetypes))
+        rows.append(row)
+    return rows
+
+
 def write_csv(path: Path, rows: list[dict[str, object]]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", newline="", encoding="utf-8") as handle:
@@ -263,12 +384,18 @@ def main() -> None:
     parser.add_argument("--output", type=Path, default=Path("data/public_10x_multiome_datasets.csv"))
     parser.add_argument("--cellxgene-only", action="store_true")
     parser.add_argument("--exclude-catlas", action="store_true")
+    parser.add_argument("--exclude-encode", action="store_true")
+    parser.add_argument("--exclude-curated-sources", action="store_true")
     args = parser.parse_args()
     rows = cellxgene_rows()
     if not args.cellxgene_only:
         rows.extend(tenx_rows())
         if not args.exclude_catlas:
             rows.extend(catlas_rows())
+        if not args.exclude_curated_sources:
+            rows.extend(curated_multiome_source_rows())
+        if not args.exclude_encode:
+            rows.extend(encode_rows())
     write_csv(args.output, rows)
     print(json.dumps({"rows": len(rows), "output": str(args.output)}, indent=2))
 

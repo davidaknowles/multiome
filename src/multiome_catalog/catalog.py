@@ -20,6 +20,10 @@ CELLXGENE_COLLECTION = (
 TENX_SITEMAP = "https://www.10xgenomics.com/sitemap-0.xml"
 CATLAS_BROWSE_API = "https://www.catlas.org/catlas/dataset_browse.php"
 CATLAS_RESOURCE = "https://www.catlas.org/catlas/dataset_resource.php?ID={dataset_id}"
+ENCODE_MULTIOMICS_SEARCH = (
+    "https://www.encodeproject.org/search/?type=MultiomicsSeries&status=released"
+    "&limit=all&format=json"
+)
 MULTIOME_EFO = "EFO:0030059"
 MAMMAL_SPECIES = {
     "Homo Sapiens",
@@ -222,6 +226,87 @@ def catlas_mammalian_scatac() -> list[dict[str, Any]]:
         ),
         key=lambda record: record["DataID"],
     )
+
+
+def encode_multiomics_series() -> list[dict[str, Any]]:
+    """Return full metadata for every released ENCODE multiomics series."""
+    search = fetch_json(ENCODE_MULTIOMICS_SEARCH)
+    accessions = sorted(item["accession"] for item in search.get("@graph", []))
+    with ThreadPoolExecutor(max_workers=24) as pool:
+        records = list(
+            pool.map(
+                lambda accession: fetch_json(
+                    f"https://www.encodeproject.org/experiments/{accession}/?format=json"
+                ),
+                accessions,
+            )
+        )
+    return records
+
+
+def encode_series_files(series: dict[str, Any]) -> list[dict[str, Any]]:
+    """Flatten released assets from both component assays of an ENCODE series."""
+    result: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for dataset in series.get("related_datasets", []):
+        for asset in dataset.get("files", []):
+            accession = asset.get("accession", "")
+            href = asset.get("href", "")
+            if not accession or not href or accession in seen or asset.get("status") != "released":
+                continue
+            seen.add(accession)
+            output_type = asset.get("output_type", "")
+            is_raw = asset.get("file_format") == "fastq" and output_type in {
+                "reads", "index reads"
+            }
+            result.append(
+                {
+                    "accession": accession,
+                    "dataset_accession": dataset.get("accession", ""),
+                    "assay": dataset.get("assay_term_name", ""),
+                    "url": urllib.parse.urljoin("https://www.encodeproject.org", href),
+                    "bytes": asset.get("file_size") or 0,
+                    "title": output_type,
+                    "filetype": classify_file(output_type, href),
+                    "role": "raw" if is_raw else "processed",
+                }
+            )
+    return result
+
+
+def nested_numeric_values(value: Any, key: str) -> list[int]:
+    """Collect integer-like values for a key from nested API metadata."""
+    found: list[int] = []
+    if isinstance(value, dict):
+        for current_key, current_value in value.items():
+            if current_key == key:
+                try:
+                    found.append(int(current_value))
+                except (TypeError, ValueError):
+                    pass
+            found.extend(nested_numeric_values(current_value, key))
+    elif isinstance(value, list):
+        for item in value:
+            found.extend(nested_numeric_values(item, key))
+    return found
+
+
+def geo_series_supplementary_urls(accession: str) -> list[str]:
+    """Enumerate direct supplementary files exposed on a GEO series record."""
+    query = urllib.parse.urlencode(
+        {"targ": "self", "acc": accession, "form": "text", "view": "full"}
+    )
+    text = fetch_bytes(f"https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?{query}").decode(
+        "utf-8"
+    )
+    urls = []
+    for line in text.splitlines():
+        if not line.startswith("!Series_supplementary_file = "):
+            continue
+        url = line.split(" = ", 1)[1].strip()
+        if url.lower() != "none":
+            urls.append(url.replace("ftp://", "https://", 1))
+    return list(dict.fromkeys(urls))
 
 
 def extract_doi(article: str) -> str:

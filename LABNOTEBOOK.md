@@ -149,3 +149,31 @@ with the skill-creator validator. After simplification, the skill is 116 lines a
 directly routes to three focused reference documents. Sources prioritize current ENCODE, 10x,
 SnapATAC2, Signac, and MACS3 documentation plus the ArchR, AMULET, COMPOSITE,
 ChromBPNet, scBasset, and Borzoi primary publications.
+
+## 2026-08-01 — MiniAtlas sources and ENCODE multiome inventory
+
+### Primary-source reconciliation
+
+Added eight GEO studies underlying the MiniAtlas full-atlas or evaluation inputs:
+GSE166188, GSE193240, GSE194122, GSE195452, GSE199636, GSE199994, GSE232222,
+and GSE238275. GSE196235 was already linked from the retina CELLxGENE record and
+is not duplicated. The registry preserves the selected GSM pair information and
+BioProject locations. The derived MiniAtlas H5AD release is not a catalog row.
+
+### ENCODE enumeration
+
+Queried the released ENCODE `MultiomicsSeries` endpoint rather than using a fixed
+accession list. The 2026-08-01 response contains 160 series: 117 human and 43
+mouse. Each row joins the released files from both related component datasets,
+classifies read and index-read FASTQs as raw, and classifies the remaining assets
+as processed. This produces 3,678 direct ENCODE file links and exact provider
+byte totals of 6.263 TB raw and 14.181 TB processed. The eleven ENCODE series used
+by MiniAtlas are included as a subset of the complete inventory.
+
+### Validation
+
+The rebuilt catalog has 312 rows: 107 CELLxGENE, 23 10x Genomics, 14 CATLAS,
+eight curated GEO source studies, and 160 ENCODE series. Validation requires all
+ENCODE and curated GEO rows to expose both raw and processed locations, enforces
+the ENCODE species counts and positive file-size totals, checks the eleven known
+MiniAtlas ENCODE accessions, and confirms GSE196235 occurs only once.

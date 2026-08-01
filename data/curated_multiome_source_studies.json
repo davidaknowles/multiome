@@ -1,0 +1,74 @@
+[
+  {
+    "source_record_id": "GSE194122",
+    "title": "A sandbox for prediction and integration of DNA, RNA, and proteins in single cells",
+    "tissues": "bone marrow mononuclear cells",
+    "species": "Homo sapiens",
+    "assays": "10x multiome RNA + ATAC",
+    "raw_data_urls": ["https://www.ncbi.nlm.nih.gov/bioproject/PRJNA799242"],
+    "selected_samples": "Full atlas GSM5828478 RNA + GSM5828491 ATAC; evaluation adds GSM5828468-77 RNA paired with GSM5828481-93 ATAC, excluding GSM5828478"
+  },
+  {
+    "source_record_id": "GSE238275",
+    "title": "Transcription factor dynamics, oscillation, and functions in human enteroendocrine cell differentiation [Multiome-seq]",
+    "tissues": "ileum; enteroendocrine differentiation",
+    "species": "Homo sapiens",
+    "assays": "10x multiome RNA + ATAC",
+    "raw_data_urls": ["https://www.ncbi.nlm.nih.gov/bioproject/PRJNA998715"],
+    "selected_samples": "GSM7661371 RNA + GSM7661375 ATAC"
+  },
+  {
+    "source_record_id": "GSE195452",
+    "title": "LGR5 expressing skin fibroblasts define a major hub perturbed in Systemic Sclerosis",
+    "tissues": "skin",
+    "species": "Homo sapiens",
+    "assays": "10x multiome RNA + ATAC",
+    "raw_data_urls": ["https://www.ncbi.nlm.nih.gov/bioproject/PRJNA800731"],
+    "selected_samples": "GSM5884743 RNA + GSM5884742 ATAC"
+  },
+  {
+    "source_record_id": "GSE199636",
+    "title": "Single nuclei multiomics of human stem cell-derived islets identifies deficiencies in lineage specification",
+    "tissues": "pancreatic islets",
+    "species": "Homo sapiens",
+    "assays": "10x multiome RNA + ATAC",
+    "raw_data_urls": ["https://www.ncbi.nlm.nih.gov/bioproject/PRJNA820903"],
+    "selected_samples": "GSM7096628 RNA + GSM7096627 ATAC"
+  },
+  {
+    "source_record_id": "GSE166188",
+    "title": "High throughput joint profiling of chromatin accessibility and protein levels in single cells [PBMC_Stim_Multiome]",
+    "tissues": "peripheral blood mononuclear cells",
+    "species": "Homo sapiens",
+    "assays": "single-cell chromatin accessibility + protein",
+    "raw_data_urls": ["https://www.ncbi.nlm.nih.gov/bioproject/PRJNA699556"],
+    "selected_samples": "GSM5065528 RNA + GSM5065527 ATAC"
+  },
+  {
+    "source_record_id": "GSE232222",
+    "title": "Mosaic loss of Y chromosome is associated with aging and epithelial injury in chronic kidney disease",
+    "tissues": "kidney",
+    "species": "Homo sapiens",
+    "assays": "10x multiome RNA + ATAC",
+    "raw_data_urls": ["https://www.ncbi.nlm.nih.gov/bioproject/PRJNA971235"],
+    "selected_samples": "Full atlas GSM7321076 RNA + GSM7321077 ATAC; evaluation adds GSM7321074-84 RNA/ATAC pairs"
+  },
+  {
+    "source_record_id": "GSE193240",
+    "title": "A primed immune transcriptional programme is activated in oligodendroglia in multiple sclerosis [ATAC-Seq and RNA-Seq II]",
+    "tissues": "brain gray matter",
+    "species": "Homo sapiens",
+    "assays": "single-nucleus RNA-seq + ATAC-seq",
+    "raw_data_urls": ["https://www.ncbi.nlm.nih.gov/bioproject/PRJNA795471"],
+    "selected_samples": "GSM5777208 RNA + GSM5777210 ATAC"
+  },
+  {
+    "source_record_id": "GSE199994",
+    "title": "Pre-encoded responsiveness to type I interferon in the peripheral immune system defines outcome of PD1 blockade therapy",
+    "tissues": "peripheral blood mononuclear cells",
+    "species": "Homo sapiens",
+    "assays": "10x multiome RNA + ATAC",
+    "raw_data_urls": ["https://www.ncbi.nlm.nih.gov/bioproject/PRJNA823386"],
+    "selected_samples": "Nine evaluation pairs: GSM6018261/77, 8263/78, 8264/80, 8266/82, 8267/83, 8269/85, 8272/88, 8274/90, 8275/91"
+  }
+]

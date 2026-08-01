@@ -1,6 +1,6 @@
 import unittest
 
-from multiome_catalog.catalog import classify_file, extract_doi
+from multiome_catalog.catalog import classify_file, extract_doi, nested_numeric_values
 
 
 class FileClassificationTest(unittest.TestCase):
@@ -25,4 +25,16 @@ class DoiExtractionTest(unittest.TestCase):
         self.assertEqual(
             extract_doi("Cell 174 (2018), doi: 10.1016/j.cell.2018.06.052."),
             "10.1016/j.cell.2018.06.052",
+        )
+
+
+class NestedMetadataTest(unittest.TestCase):
+    def test_collects_numeric_values(self):
+        metadata = {
+            "quality": [{"estimated_number_of_cells": 1200}],
+            "other": {"estimated_number_of_cells": "1500"},
+        }
+        self.assertEqual(
+            nested_numeric_values(metadata, "estimated_number_of_cells"),
+            [1200, 1500],
         )
